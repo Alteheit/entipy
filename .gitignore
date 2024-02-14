@@ -1,0 +1,7 @@
+# Folders
+**/.ipynb_checkpoints
+env/
+dist/
+# Files
+scratch.ipynb
+scratch.py
