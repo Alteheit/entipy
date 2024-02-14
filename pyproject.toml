@@ -8,7 +8,7 @@ version = "0.0.1"
 authors = [
     { name="Joe Ilagan", email="joe@archmob.com" }
 ]
-description = "A Python library that implements the Tauer Streaming method of entity resolution."
+description = "A Python library that implements an incremental clustering approach to entity resolution."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

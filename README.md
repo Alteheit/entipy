@@ -1,6 +1,6 @@
 # Tauer
 
-A Python library that implements an incremental clustering approac to entity resolution.
+A Python library that implements an incremental clustering approach to entity resolution.
 
 ### Motivation
 
@@ -23,7 +23,7 @@ This library, Tauer, implements **resolution** based on research done by [Tauer 
 
 You can install Tauer with `pip`. We recommend installing Tauer in a virtual environment.
 
-```
+```bash
 pip install tauer
 ```
 
@@ -37,7 +37,7 @@ In this tutorial, a data record will be a potentially-misspelled product name th
 
 We first need to define a data record type. We will call the overall shape of a data record a `Reference`. A `Reference` will have one or more field properties.
 
-```
+```python
 from tauer import Reference, Field
 
 class ProductNameReference(Reference):
@@ -46,7 +46,7 @@ class ProductNameReference(Reference):
 
 Fields represent the different properties of a data record. A field class inherits from the generic `Field` class. Your custom field class will need to implement one method, `compare`, which will return whether or not a field instance should be considered to match with another field instance. You can use the `value` property of the generic `Field` class as the basis for this comparison.
 
-```
+```python
 from tauer import Reference, Field
 from rapidfuzz import fuzz
 
@@ -61,7 +61,7 @@ class ObservedNameField(Field):
 
 A field class also has two additional properties. The float `true_match_probability` represents the probability that two coreferential `References` will match on the field. The float `false_match_probability` represents the probability that two non-coreferential `References` will match on the field. The default value for `true_match_probability` is `0.9`, and the default value for `false_match_probability` is `0.1`. It is likely that you will need to change these values for each field, which you can do as such:
 
-```
+```python
 from tauer import Reference, Field
 from rapidfuzz import fuzz
 
@@ -78,7 +78,7 @@ class ObservedNameField(Field):
 
 Once you have modeled your field class, you can replace the type annotation in your `ProductNameReference` class with your custom `ObservedNameField` class.
 
-```
+```python
 from tauer import Reference, Field
 from rapidfuzz import fuzz
 
@@ -97,7 +97,7 @@ class ProductNameReference(Reference):
 
 Once you have modeled your reference class, you can use it to create Reference objects like so:
 
-```
+```python
 ref_1 = ProductNameReference(observed_name="PrimeHarvestCheese10Qg")
 ref_2 = ProductNameReference(observed_name="PureGourCetYogurt2.4kg")
 ref_3 = ProductNameReference(observed_name="PrimeHarvLstCheese1F0g")
@@ -111,7 +111,7 @@ The central building block of Tauer is the `SerialResolver`. This class is a sta
 
 At a basic level, the `SerialResolver` accepts a sequence (a list or a set) of references when first instantiated.
 
-```
+```python
 from tauer import Reference, Field, SerialResolver
 
 ...
@@ -121,19 +121,20 @@ resolver = SerialResolver([r1, r2, r3])
 
 You can then call the `.resolve()` method of the `SerialResolver` to begin entity resolution. This will make the `SerialResolver` process the `Reference` inheritors inplace.
 
-```
+```python
 resolver.resolve()
 ```
 
-When resolution is complete, you can retrieve the generated clusters with `.retrieve_clusters()`, which returns a dictionary whose keys are arbitrary cluster IDs and whose values are sets of your `Reference` instances.
+When resolution is complete, you can retrieve the generated clusters with `.retrieve_clusters()`, which returns a dictionary whose keys are arbitrary cluster IDs and whose values are lists of your `Reference` instances.
 
-```
+```python
 clusters = resolver.retrieve_clusters()
 ```
 
 ### A working demonstration
 
-```
+```python
+from tauer import Field, Reference, SerialResolver
 from rapidfuzz import fuzz
 
 
@@ -164,7 +165,7 @@ clusters = sr.retrieve_clusters()
 
 The `clusters` variable should look something like this:
 
-```
+```json
 {10: [{'observed_name': 'NutSaFusionBakingSoda200g'}],
  12: [{'observed_name': 'PrimeHarvestCheese10Qg'},
   {'observed_name': 'PrimeHarvLstCheese1F0g'},
