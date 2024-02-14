@@ -165,7 +165,7 @@ clusters = sr.retrieve_clusters()
 
 The `clusters` variable should look something like this:
 
-```json
+```python
 {10: [{'observed_name': 'NutSaFusionBakingSoda200g'}],
  12: [{'observed_name': 'PrimeHarvestCheese10Qg'},
   {'observed_name': 'PrimeHarvLstCheese1F0g'},
