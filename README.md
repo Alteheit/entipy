@@ -18,6 +18,8 @@ This library, EntiPy, implements **resolution** based on research done by [Tauer
 
 - Python 3.11 or higher.
     - We built and tested this version of EntiPy with Python 3.11.2.
+- `sortedcontainers`
+    - Your Python environment must be able to install and use the `sortedcontainers` library, which can be found [here](https://github.com/grantjenks/python-sortedcontainers).
 
 ## Installation
 
