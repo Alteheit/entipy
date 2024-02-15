@@ -22,7 +22,7 @@ with open('samples/product-name-demo-dataset.csv') as f:
     reader = csv.reader(f)
     headers = next(reader)
     rows = [l for l in reader]
-    observed_names = [x[1] for x in rows]
+    observed_names = [x[0] for x in rows]
 
 references = [ProductNameReference(observed_name=x) for x in observed_names]
 
@@ -30,8 +30,8 @@ sr = SerialResolver(references)
 
 sr.resolve(verbose=True)
 
-with open('demo-result.json', 'w') as f:
-    json.dump(sr.retrieve_clusters(), f, indent=4, sort_keys=True)
+# with open('demo-result.json', 'w') as f:
+#     json.dump(sr.retrieve_clusters(), f, indent=4, sort_keys=True)
 
 end = dt.datetime.now()
 

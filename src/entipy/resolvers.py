@@ -191,9 +191,12 @@ class SerialResolver:
                 print(f'''Resolving:{i + 1}/{len(self.references)}:{reference}''')
             self.cluster_map = self._cluster_stream(reference, self.cluster_map)
         self.references = []
-    def add(self, new_observation: Reference) -> None:
-        """Adds a single reference to the references list."""
-        self.references.append(new_observation)
+    def add(self, new_observation: Reference | list[Reference]) -> None:
+        """Adds reference(s) to the references list."""
+        if type(new_observation) == list:
+            self.references.extend(new_observation)
+        else:
+            self.references.append(new_observation)
     def retrieve_clusters(self):
         """Getter for clusters."""
         return {

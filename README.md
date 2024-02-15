@@ -133,6 +133,8 @@ clusters = resolver.retrieve_clusters()
 
 ### A working demonstration
 
+We can tie everything we have seen so far into a short working demonstration of resolving a small batch of references.
+
 ```python
 from entipy import Field, Reference, SerialResolver
 from rapidfuzz import fuzz
@@ -173,6 +175,51 @@ The `clusters` variable should look something like this:
  14: [{'observed_name': 'PureGourCetYogurt2.4kg'},
   {'observed_name': 'PureGotrmetYogurt2_4kg'}]}
 ```
+
+### Incremental resolution
+
+A key feature of EntiPy is its ability to incrementally resolve references that arrive after the initial batch. `SerialResolvers` support adding either single references or lists of references through its `.add()` method.
+
+```python
+r7 = ProductNameReference(observed_name='PureGourmetCookinMOil300mL')
+
+sr.add(r7)
+
+sr.resolve()
+
+r8 = ProductNameReference(observed_name='DeliFresqeoyXauce1L')
+r9 = ProductNameReference(observed_name='DeliFreshSoySakcE1.2L')
+
+sr.add([r8, r9])
+
+sr.resolve()
+
+clusters = sr.retrieve_clusters()
+```
+
+The `clusters` variable should now look something like this:
+
+```python
+{10: [{'observed_name': 'NutSaFusionBakingSoda200g'}],
+ 12: [{'observed_name': 'PrimeHarvestCheese10Qg'},
+      {'observed_name': 'PrimeHarvLstCheese1F0g'},
+      {'observed_name': 'PrimeIarvestCh~ose100g'}],
+ 14: [{'observed_name': 'PureGourCetYogurt2.4kg'},
+      {'observed_name': 'PureGotrmetYogurt2_4kg'}],
+ 16: [{'observed_name': 'PureGourmetCookinMOil300mL'}],
+ 21: [{'observed_name': 'DeliFresqeoyXauce1L'},
+      {'observed_name': 'DeliFreshSoySakcE1.2L'}]}
+```
+
+### Other demonstrations
+
+Other demonstrations may be found in the `demos/` folder of this repository. We recommend trying the `product_name_resolution` demo to understand what motivated the development of EntiPy.
+
+## Roadmap
+
+We aim to implement the following features in future versions of EntiPy:
+- Blocking
+- Parallel resolution
 
 ## License
 

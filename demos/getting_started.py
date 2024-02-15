@@ -1,5 +1,6 @@
 from src.entipy import Field, Reference, SerialResolver
 from rapidfuzz import fuzz
+from pprint import pprint
 
 
 class ObservedNameField(Field):
@@ -24,7 +25,7 @@ sr = SerialResolver([r1, r2, r3, r4, r5, r6])
 
 sr.resolve(verbose=True)
 
-print(sr.retrieve_clusters())
+pprint(sr.retrieve_clusters())
 
 # Adding another Reference
 
@@ -34,4 +35,11 @@ sr.add(r7)
 
 sr.resolve(verbose=True)
 
-print(sr.retrieve_clusters())
+r8 = ProductNameReference(observed_name='DeliFresqeoyXauce1L')
+r9 = ProductNameReference(observed_name='DeliFreshSoySakcE1.2L')
+
+sr.add([r8, r9])
+
+sr.resolve(verbose=True)
+
+pprint(sr.retrieve_clusters())
