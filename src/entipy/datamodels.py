@@ -34,6 +34,11 @@ class Reference:
         for field_name in self.field_names:
             self_field = getattr(self, field_name)
             other_field = getattr(other, field_name)
+            # Need to implement nil-skipping here because
+            # the users can't be expected to implement it in
+            # their Field comparison function
+            if (self_field.value is None) or (other_field.value is None):
+                continue
             field_match = self_field.compare(other_field)
             field_score = self._fellegi_sunter_adjustment(
                 field_match,
@@ -66,6 +71,8 @@ class Reference:
         return self.oid != other.oid
     def __hash__(self):
         return hash(self.oid)
+    def __repr__(self):
+        return f'''<{type(self).__name__} fields={[f"{field_name}: {getattr(self, field_name).value}" for field_name in self.field_names]}>'''.replace("'", "")
 
 class Field:
     value: t.Hashable
@@ -90,6 +97,8 @@ class Field:
         return self.value != other.value
     def __hash__(self):
         return hash(self.value)
+    def __repr__(self):
+        return f'''<{type(self).__name__} value={self.value}>'''
 
 class Cluster:
     oid: int # Cluster ObjectID, used for caching/indexing.
@@ -119,6 +128,8 @@ class Cluster:
         for reference in self.references:
             representation.append(reference.as_json())
         return representation
+    def __repr__(self):
+        return f'''<Cluster id={self.oid} refcount={len(self.references)}>'''
 
 class Pair:
     cluster_oid_1: int # Ref, not val, for performance

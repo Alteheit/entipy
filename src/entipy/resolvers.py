@@ -139,7 +139,7 @@ class SerialResolver:
         # Generate a new cluster from the new_observations and add it to cluster_map
         if isinstance(new_observations, Reference):
             new_cluster = Cluster(set([new_observations]))
-        elif isinstance(new_observations, Cluster): # Probably not needed in Tauer 0.0.1?
+        elif isinstance(new_observations, Cluster): # Probably not needed in EntiPy 0.0.1?
             new_cluster = Cluster(new_observations.references)
         new_oid = new_cluster.oid
         cluster_map[new_oid] = new_cluster
@@ -183,12 +183,17 @@ class SerialResolver:
                 del cluster_map[cluster_oid_2]
         # Return the completed cluster_map
         return cluster_map
-    def resolve(self):
+    def resolve(self, verbose: bool = False) -> None:
         """Drains every Reference in the references list.
         Includes every Reference in the cluster_map and resolves cluster_map."""
-        for reference in self.references:
+        for i, reference in enumerate(self.references):
+            if verbose:
+                print(f'''Resolving:{i + 1}/{len(self.references)}:{reference}''')
             self.cluster_map = self._cluster_stream(reference, self.cluster_map)
         self.references = []
+    def add(self, new_observation: Reference) -> None:
+        """Adds a single reference to the references list."""
+        self.references.append(new_observation)
     def retrieve_clusters(self):
         """Getter for clusters."""
         return {

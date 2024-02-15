@@ -1,7 +1,9 @@
 # Folders
 **/.ipynb_checkpoints
+**/__pycache__
 env/
 dist/
 # Files
 scratch.ipynb
 scratch.py
+demo-result.json
