@@ -1,3 +1,4 @@
+import json
 import typing as t
 import math
 import itertools
@@ -8,12 +9,16 @@ id_seq = itertools.count(0)
 class Reference:
     oid: int # Reference ObjectID, used for caching/indexing.
     field_names: SortedSet[str] # Caching for use in compare
+    metadata: str # JSON-dumps-ed dictionary. No such thing as frozendict in Python by default.
     def __init__(self, **kwargs):
         # Metaprogramming to instantiate Field inheritors
         # from values passed as kwargs
         self.oid = next(id_seq)
         self.field_names = SortedSet()
         for k, v in kwargs.items():
+            if k == 'metadata':
+                self.metadata = json.dumps(v)
+                continue
             field_class = getattr(self, k)
             field_instance = field_class(v)
             setattr(self, k, field_instance)
@@ -47,7 +52,7 @@ class Reference:
             )
             score += field_score
         return field_score
-    def as_json(self):
+    def as_json(self, include_metadata=False):
         """Returns self as normal JSON."""
         representation = {}
         for field_name in self.field_names:
@@ -55,6 +60,8 @@ class Reference:
             representation.update({
                 field_name: self_field.value
             })
+        if include_metadata:
+            representation.update({'metadata': self.metadata})
         return representation
     # Hash compliance based on oid
     def __lt__(self, other):
@@ -120,13 +127,13 @@ class Cluster:
         return max(0, score)
     def merge(self, other):
         return Cluster(self.references.union(other.references))
-    def as_json(self):
+    def as_json(self, include_reference_metadata=False):
         """Returns the cluster as a list of dictionaries.
         Each element in the list is one of the References.
         Not a set because dictionaries aren't hashable."""
         representation = []
         for reference in self.references:
-            representation.append(reference.as_json())
+            representation.append(reference.as_json(include_metadata=include_reference_metadata))
         return representation
     def __repr__(self):
         return f'''<Cluster id={self.oid} refcount={len(self.references)}>'''

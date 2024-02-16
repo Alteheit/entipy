@@ -97,7 +97,7 @@ class ProductNameReference(Reference):
     observed_name = ObservedNameField
 ```
 
-Once you have modeled your reference class, you can use it to create Reference objects like so:
+Once you have modeled your reference class, you can use it to create Reference objects like so. Your Reference objects can be instantiated with kwargs. The value of each kwarg should be the value you intend the respective Field to take.
 
 ```python
 ref_1 = ProductNameReference(observed_name="PrimeHarvestCheese10Qg")
@@ -109,7 +109,7 @@ Your reference objects can then be used with the `SerialResolver` entity resolut
 
 ### Implementing entity resolution with the SerialResolver
 
-The central building block of EntiPy is the `SerialResolver`. This class is a stateful and thread-unsafe agent that clusters data records.
+The central building block of EntiPy is the `SerialResolver`. This class represents a stateful agent that clusters data records serially.
 
 At a basic level, the `SerialResolver` accepts a sequence (a list or a set) of references when first instantiated.
 
@@ -213,20 +213,59 @@ The `clusters` variable should now look something like this:
       {'observed_name': 'DeliFreshSoySakcE1.2L'}]}
 ```
 
+### Including Reference metadata
+
+When instantiating a Reference, you can assign a dictionary to the `metadata` kwarg. This is useful for knowing which row a Reference was sourced from and for managing similar tracking data.
+
+```python
+r1 = ProductNameReference(observed_name='PrimeHarvestCheese10Qg', metadata={'id': 1})
+r2 = ProductNameReference(observed_name='PureGourCetYogurt2.4kg', metadata={'id': 2})
+r3 = ProductNameReference(observed_name='PrimeHarvLstCheese1F0g', metadata={'id': 3})
+r4 = ProductNameReference(observed_name='NutSaFusionBakingSoda200g', metadata={'id': 4})
+r5 = ProductNameReference(observed_name='PrimeIarvestCh~ose100g', metadata={'id': 5})
+r6 = ProductNameReference(observed_name='PureGotrmetYogurt2_4kg', metadata={'id': 6})
+```
+
+The metadata dictionary must be JSON-serializable. Data assigned to the `metadata` kwarg in this way will remain attached to the reference as it is processed by EntiPy's resolvers, but it will not be included in reference comparisons.
+
+When retrieving clusters from a `SerialResolver`, you can toggle whether reference metadata should be included in the dictionary representation of your clusters with the `include_reference_metadata` keyword. This kwarg is `False` by default.
+
+```python
+sr.retrieve_clusters(include_reference_metadata=True)
+
+''' Returns
+{10: [{'metadata': '{"id": 4}', 'observed_name': 'NutSaFusionBakingSoda200g'}],
+ 12: [{'metadata': '{"id": 1}', 'observed_name': 'PrimeHarvestCheese10Qg'},
+      {'metadata': '{"id": 3}', 'observed_name': 'PrimeHarvLstCheese1F0g'},
+      {'metadata': '{"id": 5}', 'observed_name': 'PrimeIarvestCh~ose100g'}],
+ 14: [{'metadata': '{"id": 2}', 'observed_name': 'PureGourCetYogurt2.4kg'},
+      {'metadata': '{"id": 6}', 'observed_name': 'PureGotrmetYogurt2_4kg'}]}
+'''
+```
+
 ### Other demonstrations
 
 Other demonstrations may be found in the `demos/` folder of this repository. We recommend trying the `product_name_resolution` demo to understand what motivated the development of EntiPy.
 
 ## Roadmap
 
-We aim to implement the following features in future versions of EntiPy:
+EntiPy is currently in pre-alpha. Do not expect the API to remain stable.
+
+The EntiPy project aims to implement the following features in future versions:
 - Blocking
 - Parallel resolution
+- Weak cluster dispersion
+
+It is not the aim of EntiPy to implement similarity functions for fields.
 
 ## License
 
-By default, EntiPy is licensed under the GNU General Public License version 3 (GPLv3). If you would like to use EntiPy for a project that cannot abide by the terms of GPLv3, please contact us to purchase a commercial license, payable to Archmob Pte. Ltd.
+By default, EntiPy is licensed under the GNU Affero General Public License version 3 (AGPLv3). If you would like to use EntiPy for a project that cannot abide by the terms of AGPLv3, please contact us to purchase a commercial license, payable to Archmob Pte. Ltd.
+
+## Contributions
+
+EntiPy is not currently accepting contributions. This may change once the use cases of the project develop.
 
 ## Contact
 
-The principal author and maintainer of this library is Joe Ilagan. He can be reached at joe@archmob.com.
+The author and maintainer of this library is Joe Ilagan. He can be reached at joe@archmob.com.
