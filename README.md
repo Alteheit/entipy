@@ -1,6 +1,6 @@
 # EntiPy
 
-EntiPy is a Python library that implements an incremental clustering approach to entity resolution.
+EntiPy is a Python toolkit that implements an incremental clustering approach to entity resolution.
 
 ### Motivation
 
@@ -127,10 +127,10 @@ You can then call the `.resolve()` method of the `SerialResolver` to begin entit
 resolver.resolve()
 ```
 
-When resolution is complete, you can retrieve the generated clusters with `.retrieve_clusters()`, which returns a dictionary whose keys are arbitrary cluster IDs and whose values are lists of your `Reference` instances.
+When resolution is complete, you can retrieve the dictionary forms of generated clusters with `.get_cluster_data()`, which returns a dictionary whose keys are arbitrary cluster IDs and whose values are lists of your `Reference` instances.
 
 ```python
-clusters = resolver.retrieve_clusters()
+clusters = resolver.get_cluster_data()
 ```
 
 ### A working demonstration
@@ -164,7 +164,7 @@ sr = SerialResolver([r1, r2, r3, r4, r5, r6])
 
 sr.resolve()
 
-clusters = sr.retrieve_clusters()
+clusters = sr.get_cluster_data()
 ```
 
 The `clusters` variable should look something like this:
@@ -196,7 +196,7 @@ sr.add([r8, r9])
 
 sr.resolve()
 
-clusters = sr.retrieve_clusters()
+clusters = sr.get_cluster_data()
 ```
 
 The `clusters` variable should now look something like this:
@@ -231,7 +231,7 @@ The metadata dictionary must be JSON-serializable. Data assigned to the `metadat
 When retrieving clusters from a `SerialResolver`, you can toggle whether reference metadata should be included in the dictionary representation of your clusters with the `include_reference_metadata` keyword. This kwarg is `False` by default.
 
 ```python
-sr.retrieve_clusters(include_reference_metadata=True)
+sr.get_cluster_data(include_reference_metadata=True)
 
 ''' Returns
 {10: [{'metadata': '{"id": 4}', 'observed_name': 'NutSaFusionBakingSoda200g'}],
@@ -242,6 +242,14 @@ sr.retrieve_clusters(include_reference_metadata=True)
       {'metadata': '{"id": 6}', 'observed_name': 'PureGotrmetYogurt2_4kg'}]}
 '''
 ```
+
+### NOT IMPLEMENTED Blocking
+
+Part of the complexity of entity resolution comes from the need to compare references to every other reference in the dataset. If left untreated, this results in a quadratic problem that even supercomputers and HPC clusters cannot solve. The most common remedy for this is to preemptively disqualify dissimilar references before even computing comparison scores. This is usually achieved by "blocking": whitelisting potentially-similar references instead of blacklisting dissimilar ones.
+
+### NOT IMPLEMENTED Speeding up resolution with MergeResolver
+
+EntiPy provides a more advanced resolver called the `MergeResolver` that parallelizes resolution even without blocks.
 
 ### Other demonstrations
 
@@ -255,10 +263,13 @@ The EntiPy project aims to implement the following features in future versions:
 - Blocking
 - Parallel resolution
 - Weak cluster dispersion
+- Using disks/databases
 
 It is not the aim of EntiPy to implement similarity functions for fields.
 
-## License
+## Copyright and license
+
+© 2024 Joe Ilagan. All rights reserved.
 
 By default, EntiPy is licensed under the GNU Affero General Public License version 3 (AGPLv3). If you would like to use EntiPy for a project that cannot abide by the terms of AGPLv3, please contact us to purchase a commercial license, payable to Archmob Pte. Ltd.
 

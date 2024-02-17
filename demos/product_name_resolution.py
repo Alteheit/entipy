@@ -31,7 +31,7 @@ sr = SerialResolver(references)
 sr.resolve(verbose=True)
 
 # with open('demo-result.json', 'w') as f:
-#     json.dump(sr.retrieve_clusters(), f, indent=4, sort_keys=True)
+#     json.dump(sr.get_cluster_data(), f, indent=4, sort_keys=True)
 
 end = dt.datetime.now()
 

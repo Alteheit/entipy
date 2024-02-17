@@ -197,9 +197,12 @@ class SerialResolver:
             self.references.extend(new_observation)
         else:
             self.references.append(new_observation)
-    def retrieve_clusters(self, include_reference_metadata=False):
-        """Getter for clusters."""
+    def get_cluster_data(self, include_reference_metadata=False):
+        """Getter for the JSON forms of clusters."""
         return {
             oid: cluster.as_json(include_reference_metadata=include_reference_metadata)
             for oid, cluster in self.cluster_map.items()
         }
+    def get_clusters(self):
+        """Getter for clusters. As in the clusters themselves, not their JSON forms."""
+        return [v for k, v in self.cluster_map.items()]

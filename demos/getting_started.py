@@ -25,7 +25,7 @@ sr = SerialResolver([r1, r2, r3, r4, r5, r6])
 
 sr.resolve(verbose=True)
 
-pprint(sr.retrieve_clusters(include_reference_metadata=True))
+pprint(sr.get_cluster_data(include_reference_metadata=True))
 
 # Adding another Reference
 
@@ -42,4 +42,4 @@ sr.add([r8, r9])
 
 sr.resolve(verbose=True)
 
-pprint(sr.retrieve_clusters(include_reference_metadata=True))
+pprint(sr.get_cluster_data(include_reference_metadata=True))
