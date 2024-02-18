@@ -39,10 +39,16 @@ class Reference:
         for field_name in self.field_names:
             self_field = getattr(self, field_name)
             other_field = getattr(other, field_name)
+            # Skip if exclude == True
+            exclude = getattr(self_field, 'exclude', None)
+            if exclude:
+                continue
             # Need to implement nil-skipping here because
             # the users can't be expected to implement it in
             # their Field comparison function
-            if (self_field.value is None) or (other_field.value is None):
+            self_field_value = getattr(self_field, 'value', None)
+            other_field_value = getattr(other_field, 'value', None)
+            if (self_field_value is None) or (other_field_value is None):
                 continue
             field_match = self_field.compare(other_field)
             field_score = self._fellegi_sunter_adjustment(
@@ -51,7 +57,7 @@ class Reference:
                 self_field.false_match_probability,
             )
             score += field_score
-        return field_score
+        return score
     def as_json(self, include_metadata=False):
         """Returns self as normal JSON."""
         representation = {}

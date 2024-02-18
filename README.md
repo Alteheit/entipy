@@ -245,7 +245,40 @@ sr.get_cluster_data(include_reference_metadata=True)
 
 ### NOT IMPLEMENTED Blocking
 
-Part of the complexity of entity resolution comes from the need to compare references to every other reference in the dataset. If left untreated, this results in a quadratic problem that even supercomputers and HPC clusters cannot solve. The most common remedy for this is to preemptively disqualify dissimilar references before even computing comparison scores. This is usually achieved by "blocking": whitelisting potentially-similar references instead of blacklisting dissimilar ones.
+Part of the complexity of entity resolution comes from the need to compare references to every other reference in the dataset. If left untreated, this results in a quadratic problem that even supercomputers and HPC clusters cannot solve. The most common remedy for this is to preemptively disqualify dissimilar references before even computing comparison scores. This is usually achieved by "blocking": whitelisting potentially-similar references instead of blacklisting dissimilar ones. Not all scenarios support blocking, but if your scenario does, use it; without blocking, ER is very difficult, if not impossible, to scale.
+
+To demonstrate blocking, we will modify our tutorial scenario slightly. Our product name references will now also have a `retail_store` field. For the purposes of this tutorial, we will assume that products can only be sold in one retail store. This will make `retail_store` suitable to use as a blocking key, since we can assume that any two references that are _not_ in the same `retail_store` block are not coreferential.
+
+You can define a `BlockingKey` in a similar way to defining `Fields`. `BlockingKeys` will be added as properties to your `Reference` later.
+
+```python
+from entipy import Reference, Field, SerialResolver, BlockingKey
+from rapidfuzz import fuzz
+
+class ObservedNameField(Field):
+    ...
+
+
+class RetailStoreField(Field):
+    value: str
+    # To exclude a field from comparison, set the `exclude` property to True.
+    #  We will set exclude to True here because we are using this
+    #  field as a blocking key, not as a probablistic comparison criterion.
+    exclude = True
+
+
+class RetailStoreBK(BlockingKey):
+    # BlockingKeys may be expected to contain a reference to their Reference object.
+    # You can use this property in the `compute` method.
+    reference: Reference
+    def compute(self):
+        # BlockingKeys are expected to have a `compute` method.
+        #  `compute` will return the value of the blocking key
+        #  based on the attributes of their Reference.
+        # In this case, we will simply use the raw value of the
+        #  `retail_store` field.
+        return self.reference.retail_store.value
+```
 
 ### NOT IMPLEMENTED Speeding up resolution with MergeResolver
 
@@ -254,6 +287,10 @@ EntiPy provides a more advanced resolver called the `MergeResolver` that paralle
 ### Other demonstrations
 
 Other demonstrations may be found in the `demos/` folder of this repository. We recommend trying the `product_name_resolution` demo to understand what motivated the development of EntiPy.
+
+## Q\&A
+
+###
 
 ## Roadmap
 
