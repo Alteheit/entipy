@@ -6,23 +6,75 @@ from sortedcontainers import SortedSet
 
 id_seq = itertools.count(0)
 
+class Field:
+    value: t.Hashable
+    true_match_probability: float = 0.9
+    false_match_probability: float = 0.1
+    # Hash compliance based on value
+    def __init__(self, value):
+        self.value = value
+    def compare(self, other):
+        return self.value == other.value
+    def __lt__(self, other):
+        return self.value < other.value
+    def __le__(self, other):
+        return self.value <= other.value
+    def __gt__(self, other):
+        return self.value > other.value
+    def __ge__(self, other):
+        return self.value >= other.value
+    def __eq__(self, other):
+        return self.value == other.value
+    def __ne__(self, other):
+        return self.value != other.value
+    def __hash__(self):
+        return hash(self.value)
+    def __repr__(self):
+        return f'''<{type(self).__name__} value={self.value}>'''
+
+class BlockingKey:
+    # Must be instantiated like this: BlockingKey(reference)
+    def __init__(self, reference):
+        self.reference = reference
+
 class Reference:
     oid: int # Reference ObjectID, used for caching/indexing.
     field_names: SortedSet[str] # Caching for use in compare
     metadata: str # JSON-dumps-ed dictionary. No such thing as frozendict in Python by default.
+    blocking_keys: dict # {blocking_key_name: blocking_key_value}
     def __init__(self, **kwargs):
         # Metaprogramming to instantiate Field inheritors
         # from values passed as kwargs
         self.oid = next(id_seq)
         self.field_names = SortedSet()
+        self.blocking_keys = {}
         for k, v in kwargs.items():
+            # Guard for metadata
             if k == 'metadata':
                 self.metadata = json.dumps(v)
                 continue
-            field_class = getattr(self, k)
-            field_instance = field_class(v)
-            setattr(self, k, field_instance)
-            self.field_names.add(k)
+            # The rest of the kwargs should refer to class attributes which themselves are classes
+            kwarg_class = getattr(self, k)
+            # Guard for fields
+            if issubclass(kwarg_class, Field):
+                field_class = getattr(self, k)
+                field_instance = field_class(v)
+                setattr(self, k, field_instance)
+                self.field_names.add(k)
+                continue
+        # The blocking keys are not instance kwargs, they are class attributes
+        for k, v in vars(type(self)).items():
+            # Skip if not a class
+            if type(v) != type:
+                continue
+            # We are only interested in blocking keys
+            if not issubclass(v, BlockingKey):
+                continue
+            blocking_key_class = v
+            blocking_key_instance = blocking_key_class(self)
+            self.blocking_keys.update({
+                blocking_key_instance.name: blocking_key_instance.compute()
+            })
     def _fellegi_sunter_adjustment(self,
         eq: bool,
         true_match_probability: float,
@@ -39,16 +91,10 @@ class Reference:
         for field_name in self.field_names:
             self_field = getattr(self, field_name)
             other_field = getattr(other, field_name)
-            # Skip if exclude == True
-            exclude = getattr(self_field, 'exclude', None)
-            if exclude:
-                continue
             # Need to implement nil-skipping here because
             # the users can't be expected to implement it in
             # their Field comparison function
-            self_field_value = getattr(self_field, 'value', None)
-            other_field_value = getattr(other_field, 'value', None)
-            if (self_field_value is None) or (other_field_value is None):
+            if (self_field.value is None) or (other_field.value is None):
                 continue
             field_match = self_field.compare(other_field)
             field_score = self._fellegi_sunter_adjustment(
@@ -57,7 +103,7 @@ class Reference:
                 self_field.false_match_probability,
             )
             score += field_score
-        return score
+        return field_score
     def as_json(self, include_metadata=False):
         """Returns self as normal JSON."""
         representation = {}
@@ -86,32 +132,6 @@ class Reference:
         return hash(self.oid)
     def __repr__(self):
         return f'''<{type(self).__name__} fields={[f"{field_name}: {getattr(self, field_name).value}" for field_name in self.field_names]}>'''.replace("'", "")
-
-class Field:
-    value: t.Hashable
-    true_match_probability: float = 0.9
-    false_match_probability: float = 0.1
-    # Hash compliance based on value
-    def __init__(self, value):
-        self.value = value
-    def compare(self, other):
-        return self.value == other.value
-    def __lt__(self, other):
-        return self.value < other.value
-    def __le__(self, other):
-        return self.value <= other.value
-    def __gt__(self, other):
-        return self.value > other.value
-    def __ge__(self, other):
-        return self.value >= other.value
-    def __eq__(self, other):
-        return self.value == other.value
-    def __ne__(self, other):
-        return self.value != other.value
-    def __hash__(self):
-        return hash(self.value)
-    def __repr__(self):
-        return f'''<{type(self).__name__} value={self.value}>'''
 
 class Cluster:
     oid: int # Cluster ObjectID, used for caching/indexing.

@@ -6,11 +6,18 @@ class SerialResolver:
     """The single-threaded object that resolves References."""
     # Internal object state
     references: list[Reference] # A list/queue of References to resolve
-    clusters = list[Cluster] # The list of Clusters to resolve. NOT the main database! This is basically a queue of clusters to add to cluster_map.
-    cluster_map = dict # The main database of Clusters; {oid: cluster}
+    clusters: list[Cluster] # The list of Clusters to resolve. NOT the main database! This is basically a queue of clusters to add to cluster_map.
+    cluster_map: dict # The main database of Clusters; {oid: cluster}
+    # NOTE: Not sure if I actually use this
     pair_set: SortedSet[Pair] # Priority queue for cluster_stream
+    # NOTE: Not sure if I actually use this
     candidate_set: SortedSet[Pair] # Priority queue for cluster_pass and cluster_solve
+    # NOTE: Not sure if I actually use this
     cluster_pairs: dict # Index for cluster_stream to remove pairs from pair_set and candidate_set; {oid: set[Pair]}
+    # Implementation of blocking
+    # Need at least an index and an inverted index
+    block_index: dict # {blocking_key_name: {blocking_key_value: set[cluster_oid]}}
+    inverted_block_index: dict # {cluster_oid: {blocking_key_name: blocking_key_value}}
     def __init__(self, references):
         # Internal object state init
         self.references = list(references)
@@ -18,28 +25,8 @@ class SerialResolver:
         self.pair_set = SortedSet()
         self.candidate_set = SortedSet()
         self.cluster_pairs = {}
-    def _construct_pair_set(self):
-        """Builds the pair set from the cluster map.
-        Used when there are no pairs in the pair set."""
-        for cluster_oid_1, cluster_1 in self.cluster_map.items():
-            for cluster_oid_2, cluster_2 in self.cluster_map.items():
-                if cluster_oid_1 >= cluster_oid_2: continue
-                pair_weightsum = cluster_1.weightsum(cluster_2)
-                pair = Pair(cluster_oid_1, cluster_oid_2, pair_weightsum)
-                self.pair_set.add(pair)
-                # Add the pair to the cluster pairs
-                if not self.cluster_pairs.get(cluster_oid_1):
-                    self.cluster_pairs.update({
-                        cluster_oid_1: set([pair])
-                    })
-                else:
-                    self.cluster_pairs.get(cluster_oid_1).add(pair)
-                if not self.cluster_pairs.get(cluster_oid_2):
-                    self.cluster_pairs.update({
-                        cluster_oid_2: set([pair])
-                    })
-                else:
-                    self.cluster_pairs.get(cluster_oid_2).add(pair)
+        self.block_index = {}
+        self.inverted_block_index = {}
     def _cluster_pass(self, cluster_map: dict) -> t.Tuple[dict, bool]:
         '''Merges the two most similar clusters, if any.
         If there are no similar clusters, does nothing.

@@ -12,7 +12,7 @@ ER is a difficult data problem. It is only necessary when matching data records 
 - Second, **blocking**. If possible, any given record is tagged as possibly belonging to one or more subsets, or blocks, of records to avoid the need to compare each record against every other record. For example, ER on customers might be blocked by ZIP code.
 - Third, **resolution**. Records within each block are compared against one another and are clustered based on their similarity to other records. Each cluster aims to be as close as possible to a real-world entity.
 
-This library, EntiPy, implements **resolution** based on research done by [Tauer et al.](https://www.sciencedirect.com/science/article/abs/pii/S1566253517305729) and [Ilagan and Ilagan](#).
+This library, EntiPy, implements **resolution** based on research done by [Tauer et al.](https://www.sciencedirect.com/science/article/abs/pii/S1566253517305729) and [Ilagan and Ilagan](https://www.dropbox.com/scl/fi/vwtta52zsyx5atpqoif80/1-ILAGAN_CENTERIS2023-1.pdf?rlkey=a8y2iucpjra02fepfomwl920k&dl=0).
 
 ## Prerequisites
 
@@ -271,6 +271,8 @@ class RetailStoreBK(BlockingKey):
     # BlockingKeys may be expected to contain a reference to their Reference object.
     # You can use this property in the `compute` method.
     reference: Reference
+    # BlockingKeys are expected to have a name
+    name = 'RSBK' # Let's set this to "RSBK" for brevity
     def compute(self):
         # BlockingKeys are expected to have a `compute` method.
         #  `compute` will return the value of the blocking key
@@ -278,6 +280,11 @@ class RetailStoreBK(BlockingKey):
         # In this case, we will simply use the raw value of the
         #  `retail_store` field.
         return self.reference.retail_store.value
+
+class ProductNameReference(Reference):
+    observed_name = ObservedNameField
+    retail_store = RetailStoreField
+    retail_store_bk = RetailStoreBK
 ```
 
 ### NOT IMPLEMENTED Speeding up resolution with MergeResolver
@@ -290,7 +297,9 @@ Other demonstrations may be found in the `demos/` folder of this repository. We 
 
 ## Q\&A
 
-###
+**Q: Can I mix different types of References in one Resolver?**
+
+**A:** EntiPy is not built to handle heterogeneous References in one Resolver. Please use only one schema within one Resolver as much as possible.
 
 ## Roadmap
 
