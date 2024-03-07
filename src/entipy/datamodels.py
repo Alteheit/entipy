@@ -87,6 +87,8 @@ class Reference:
             (1 - true_match_probability) / (1 - false_match_probability)
         )
     def compare(self, other):
+        """Getting the sum of all the Fellegi-Sunter comparisons
+        between all the Reference's fields"""
         score = 0
         for field_name in self.field_names:
             self_field = getattr(self, field_name)
@@ -94,6 +96,9 @@ class Reference:
             # Need to implement nil-skipping here because
             # the users can't be expected to implement it in
             # their Field comparison function
+            # NOTE: The other field might not even have a value
+            if (getattr(self_field, 'value', None) is None) or (getattr(other_field, 'value', None) is None):
+                continue
             if (self_field.value is None) or (other_field.value is None):
                 continue
             field_match = self_field.compare(other_field)
@@ -103,7 +108,7 @@ class Reference:
                 self_field.false_match_probability,
             )
             score += field_score
-        return field_score
+        return score
     def as_json(self, include_metadata=False):
         """Returns self as normal JSON."""
         representation = {}

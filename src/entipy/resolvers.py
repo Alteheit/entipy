@@ -126,8 +126,9 @@ class SerialResolver:
         # Generate a new cluster from the new_observations and add it to cluster_map
         if isinstance(new_observations, Reference):
             new_cluster = Cluster(set([new_observations]))
-        elif isinstance(new_observations, Cluster): # Probably not needed in EntiPy 0.0.1?
+        elif isinstance(new_observations, Cluster): # Meant for MergeResolver in the future
             new_cluster = Cluster(new_observations.references)
+        # Add the new cluster to the indexes
         new_oid = new_cluster.oid
         cluster_map[new_oid] = new_cluster
         active_clusters[new_oid] = new_cluster

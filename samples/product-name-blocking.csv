@@ -1,0 +1,8 @@
+id,ground_truth,observed_name,retail_store
+1,PrimeHarvestCheese100g,Pr1meHarv3stCheese100g,SM
+2,PureGourmetYogurt2.4kg,4ureGourmetY0gurt24kg,SM
+3,PrimeHarvestCheese100g,PrimeHarwestCheese1o0g,Robinsons
+4,PrimeHarvestCheese100g,primeHarvestCh33se100g,SM
+5,NutraFusionBakingSoda200g,NutraFussionBakingSooda200g,Robinsons
+6,NutraFusionBakingSoda200g,NxtraFusionBakingSoda200g,Robinsons
+7,PrimeHarvestCheese100g,PremeHarvestCheese100g,SM
