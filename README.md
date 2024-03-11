@@ -243,7 +243,7 @@ sr.get_cluster_data(include_reference_metadata=True)
 '''
 ```
 
-### NOT IMPLEMENTED Blocking
+### Blocking
 
 Part of the complexity of entity resolution comes from the need to compare references to every other reference in the dataset. If left untreated, this results in a quadratic problem that even supercomputers and HPC clusters cannot solve. The most common remedy for this is to preemptively disqualify dissimilar references before even computing comparison scores. This is usually achieved by "blocking": whitelisting potentially-similar references instead of blacklisting dissimilar ones. Not all scenarios support blocking, but if your scenario does, use it; without blocking, ER is very difficult, if not impossible, to scale.
 
@@ -286,6 +286,10 @@ class ProductNameReference(Reference):
     retail_store = RetailStoreField
     retail_store_bk = RetailStoreBK
 ```
+
+Two clusters will only be compared if they share any blocking key. If not, EntiPy will not waste compute comparing them.
+
+
 
 ### NOT IMPLEMENTED Speeding up resolution with MergeResolver
 

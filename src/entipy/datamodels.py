@@ -38,6 +38,16 @@ class BlockingKey:
         self.reference = reference
 
 class Reference:
+    """
+    Instantiate like this:
+    r = Reference(
+        field_name_1=FieldClass1,
+        field_name_n=FieldClassN,
+        blocking_key_name_1=BlockingKeyClass1,
+        blocking_key_name_N=BlockingKeyClassN,
+        metadata=JsonSerializableMetadataDictionary,
+    )
+    """
     oid: int # Reference ObjectID, used for caching/indexing.
     field_names: SortedSet[str] # Caching for use in compare
     metadata: str # JSON-dumps-ed dictionary. No such thing as frozendict in Python by default.
@@ -75,6 +85,9 @@ class Reference:
             self.blocking_keys.update({
                 blocking_key_instance.name: blocking_key_instance.compute()
             })
+        # If no blocking keys were added, put a dummy
+        if not self.blocking_keys:
+            self.blocking_keys.update({'BK': '0'})
     def _fellegi_sunter_adjustment(self,
         eq: bool,
         true_match_probability: float,
@@ -100,6 +113,9 @@ class Reference:
             if (getattr(self_field, 'value', None) is None) or (getattr(other_field, 'value', None) is None):
                 continue
             if (self_field.value is None) or (other_field.value is None):
+                continue
+            # Also continue if either of the fields has an exclude classattribute
+            if (getattr(self_field, 'exclude', False)) or (getattr(other_field, 'exclude', False)):
                 continue
             field_match = self_field.compare(other_field)
             field_score = self._fellegi_sunter_adjustment(
@@ -139,19 +155,65 @@ class Reference:
         return f'''<{type(self).__name__} fields={[f"{field_name}: {getattr(self, field_name).value}" for field_name in self.field_names]}>'''.replace("'", "")
 
 class Cluster:
+    """
+    Blocking
+
+    Per the IGP algorithm, blocking_keys is supposed to be:
+        {bkn: set[bkv]}
+        where set[bkv] is the set of all BKVs that References
+        within the Cluster have for their BKN
+    """
     oid: int # Cluster ObjectID, used for caching/indexing.
     references: set[Reference]
+    blocking_keys: dict # {bk_name: set[bk_value]}
     def __init__(self, references: set[Reference]):
         self.oid = next(id_seq)
         self.references = references
+        # Get the union of the blocking_keys dicts of all the References
+        blocking_key_names = [set(bkn for bkn, bkv in r.blocking_keys.items()) for r in self.references]
+        blocking_key_names = [i for s in blocking_key_names for i in s]
+        blocking_key_names = set(blocking_key_names)
+        self.blocking_keys = {}
+        for bkn in blocking_key_names:
+            bk_values = set()
+            for r in self.references:
+                bk_value = r.blocking_keys.get(bkn)
+                if bk_value is not None:
+                    bk_values.add(bk_value)
+            self.blocking_keys[bkn] = bk_values
+    def has_common_block(self, other):
+        """Returns True if self has at least one common block with other,
+        False otherwise
+
+        Note that it's really the References that have BKs
+
+        Used to enforce blocking"""
+        blocking_key_names = [*self.blocking_keys.keys(), *other.blocking_keys.keys()]
+        blocking_key_names = set(blocking_key_names)
+        for bkn in blocking_key_names:
+            self_bkvs = self.blocking_keys.get(bkn)
+            other_bkvs = other.blocking_keys.get(bkn)
+            # If either doesn't have, continue
+            if (self_bkvs is None) or (other_bkvs is None):
+                continue
+            # Check if they share any values
+            if not not self_bkvs.intersection(other_bkvs):
+                return True
+        return False
     def compare(self, other):
         score = 0
+        # Blocking check
+        if not self.has_common_block(other):
+            return score
         for ref_1 in self.references:
             for ref_2 in other.references:
                 score += ref_1.compare(ref_2)
         return score
     def weightsum(self, other):
         score = 0
+        # Blocking check
+        if not self.has_common_block(other):
+            return score
         for ref_1 in self.references:
             for ref_2 in other.references:
                 score += ref_1.compare(ref_2)

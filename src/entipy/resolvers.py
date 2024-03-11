@@ -3,7 +3,9 @@ from sortedcontainers import SortedSet
 from .datamodels import Reference, Cluster, Pair
 
 class SerialResolver:
-    """The single-threaded object that resolves References."""
+    """The single-threaded object that resolves References.
+    Good in the general case and in online cases.
+    Less good for batch. Use MergeResolver for that."""
     # Internal object state
     references: list[Reference] # A list/queue of References to resolve
     clusters: list[Cluster] # The list of Clusters to resolve. NOT the main database! This is basically a queue of clusters to add to cluster_map.
@@ -17,9 +19,10 @@ class SerialResolver:
     # Implementation of blocking
     # Need at least an index and an inverted index
     block_index: dict # {blocking_key_name: {blocking_key_value: set[cluster_oid]}}
-    inverted_block_index: dict # {cluster_oid: {blocking_key_name: blocking_key_value}}
+    inverted_block_index: dict # {cluster_oid: {blocking_key_name: blocking_key_value}} # Wait, I can just get this from cluster_map
     def __init__(self, references):
         # Internal object state init
+        # Wait, are any of these even used other than references and cluster_map in .resolve()?
         self.references = list(references)
         self.cluster_map = {}
         self.pair_set = SortedSet()
@@ -123,6 +126,7 @@ class SerialResolver:
         """
         # Setup
         active_clusters = {} # {oid: cluster}
+        block_index = {} # {blocking_key_name: {blocking_key_value: set[cluster_oid]}}
         # Generate a new cluster from the new_observations and add it to cluster_map
         if isinstance(new_observations, Reference):
             new_cluster = Cluster(set([new_observations]))
@@ -194,3 +198,6 @@ class SerialResolver:
     def get_clusters(self):
         """Getter for clusters. As in the clusters themselves, not their JSON forms."""
         return [v for k, v in self.cluster_map.items()]
+
+class MergeResolver:
+    """Based on my hunch"""

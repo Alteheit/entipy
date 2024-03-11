@@ -12,3 +12,38 @@ def __ne__(self, other):
 	return self.oid != other.oid
 def __hash__(self):
 	return hash(self.oid)
+
+        # for bk_name, bk_value in new_cluster.blocking_keys.items():
+        #     # Does the BK already exist?
+        #     bk_dictionary = self.block_index.get(bk_name)
+        #     if not bk_dictionary:
+        #         bk_dictionary = {}
+        #     bk_value_set = bk_dictionary.get(bk_value)
+        #     # Gonna be None or a set[oid]
+        #     if bk_value_set:
+        #         bk_value_set.add(new_cluster.oid)
+        #     else:
+        #         bk_value_set = set([new_cluster.oid])
+        #     bk_dictionary[bk_value] = bk_value_set
+        #     blocked_clusters.update({k: v for k, v in cluster_map.items})
+
+        for r in self.references:
+            for k, v in r.blocking_keys.items():
+                self.blocking_keys[k] = v
+
+        blocking_keys = set(
+            self.blocking_keys.keys()
+        ).union(
+            set(other.blocking_keys.keys())
+        )
+        for bk in blocking_keys:
+            # If either doesn't have, skip
+            self_block = self.blocking_keys.get(bk)
+            other_block = other.blocking_keys.get(bk)
+            if (self_block is None) or (other_block is None):
+                continue
+            # Check value
+            if self_block == other_block:
+                return True
+        # If self and other share no blocks they end up here
+        return False
