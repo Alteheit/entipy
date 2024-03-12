@@ -281,19 +281,111 @@ class RetailStoreBK(BlockingKey):
         #  `retail_store` field.
         return self.reference.retail_store.value
 
-class ProductNameReference(Reference):
+class CompoundProductReference(Reference):
     observed_name = ObservedNameField
     retail_store = RetailStoreField
     retail_store_bk = RetailStoreBK
 ```
 
-Two clusters will only be compared if they share any blocking key. If not, EntiPy will not waste compute comparing them.
+Two clusters will only be compared if any reference within the first cluster shares any blocking key with any reference within the second cluster. If not, EntiPy will not waste compute comparing them.
+
+Any of EntiPy's resolver classes will be able to handle references with blocking keys. As an example:
+
+```python
+references = [
+    CompoundProductReference(observed_name='PrimeHarvestCheese10Qg', retail_store='SM'),
+    CompoundProductReference(observed_name='PureGourCetYogurt2.4kg', retail_store='SM'),
+    CompoundProductReference(observed_name='PrimeHarvLstCheese1F0g', retail_store='SM'),
+    CompoundProductReference(observed_name='NutSaFusionBakingSoda200g', retail_store='SM'),
+    CompoundProductReference(observed_name='PrimeIarvestCh~ose100g', retail_store='SM'),
+    CompoundProductReference(observed_name='PureGotrmetYogurt2_4kg', retail_store='SM'),
+    CompoundProductReference(observed_name='PrimeHarvestCheese10Qg', retail_store='SM'),
+    CompoundProductReference(observed_name='PureGourCetYogurt2.4kg', retail_store='SM'),
+    CompoundProductReference(observed_name='PrimeHarvestCheese10Qg', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='PureGourCetYogurt2.4kg', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='PrimeHarvLstCheese1F0g', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='NutSaFusionBakingSoda200g', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='PrimeIarvestCh~ose100g', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='PureGotrmetYogurt2_4kg', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='PrimeHarvestCheese10Qg', retail_store='Robinsons'),
+    CompoundProductReference(observed_name='PureGourCetYogurt2.4kg', retail_store='Robinsons'),
+]
+
+sr = SerialResolver(references)
+
+sr.resolve()
+
+sr.get_cluster_data()
+
+'''
+Should yield:
+{20: [{'observed_name': 'NutSaFusionBakingSoda200g', 'retail_store': 'SM'}],
+ 26: [{'observed_name': 'PrimeHarvestCheese10Qg', 'retail_store': 'SM'},
+      {'observed_name': 'PrimeHarvLstCheese1F0g', 'retail_store': 'SM'},
+      {'observed_name': 'PrimeIarvestCh~ose100g', 'retail_store': 'SM'},
+      {'observed_name': 'PrimeHarvestCheese10Qg', 'retail_store': 'SM'}],
+ 28: [{'observed_name': 'PureGourCetYogurt2.4kg', 'retail_store': 'SM'},
+      {'observed_name': 'PureGotrmetYogurt2_4kg', 'retail_store': 'SM'},
+      {'observed_name': 'PureGourCetYogurt2.4kg', 'retail_store': 'SM'}],
+ 33: [{'observed_name': 'NutSaFusionBakingSoda200g',
+       'retail_store': 'Robinsons'}],
+ 39: [{'observed_name': 'PrimeHarvestCheese10Qg', 'retail_store': 'Robinsons'},
+      {'observed_name': 'PrimeHarvLstCheese1F0g', 'retail_store': 'Robinsons'},
+      {'observed_name': 'PrimeIarvestCh~ose100g', 'retail_store': 'Robinsons'},
+      {'observed_name': 'PrimeHarvestCheese10Qg', 'retail_store': 'Robinsons'}],
+ 41: [{'observed_name': 'PureGourCetYogurt2.4kg', 'retail_store': 'Robinsons'},
+      {'observed_name': 'PureGotrmetYogurt2_4kg', 'retail_store': 'Robinsons'},
+      {'observed_name': 'PureGourCetYogurt2.4kg', 'retail_store': 'Robinsons'}]}
+'''
+```
+
+Please note that blocking is meant to disqualify obviously dissimilar references, not to narrow down possibly similar references. Adding more blocking keys actually _increases_ the number of comparisons that EntiPy must execute, so design your blocking strategy accordingly.
+
+### Speeding up resolution with MergeResolver
+
+EntiPy provides a more advanced resolver called the `MergeResolver` that parallelizes resolution even without blocks. Its interface is the same as `SerialResolver`, but internally, it implements a mergesort-inspired resolution algorithm. Resolution results are mostly similar to `SerialResolver` results, but are computed _much_ faster.
+
+```python
+from entipy import Field, Reference, MergeResolver
+from rapidfuzz import fuzz
 
 
+class ObservedNameField(Field):
+    true_match_probability = 0.85
+    false_match_probability = 0.15
+    def compare(self, other):
+        return fuzz.ratio(self.value, other.value) >= 70
 
-### NOT IMPLEMENTED Speeding up resolution with MergeResolver
 
-EntiPy provides a more advanced resolver called the `MergeResolver` that parallelizes resolution even without blocks.
+class ProductNameReference(Reference):
+    observed_name = ObservedNameField
+
+
+r1 = ProductNameReference(observed_name='PrimeHarvestCheese10Qg')
+r2 = ProductNameReference(observed_name='PureGourCetYogurt2.4kg')
+r3 = ProductNameReference(observed_name='PrimeHarvLstCheese1F0g')
+r4 = ProductNameReference(observed_name='NutSaFusionBakingSoda200g')
+r5 = ProductNameReference(observed_name='PrimeIarvestCh~ose100g')
+r6 = ProductNameReference(observed_name='PureGotrmetYogurt2_4kg')
+
+mr = MergeResolver([r1, r2, r3, r4, r5, r6])
+
+mr.resolve()
+
+clusters = mr.get_cluster_data()
+
+'''
+clusters should contain:
+
+{16: [{'observed_name': 'NutSaFusionBakingSoda200g'}],
+ 18: [{'observed_name': 'PrimeHarvestCheese10Qg'},
+  {'observed_name': 'PrimeHarvLstCheese1F0g'},
+  {'observed_name': 'PrimeIarvestCh~ose100g'}],
+ 20: [{'observed_name': 'PureGourCetYogurt2.4kg'},
+  {'observed_name': 'PureGotrmetYogurt2_4kg'}]}
+'''
+```
+Playing around with MergeResolver in the product name resolution demo brings resolution time for 4350 records down from 8 minutes (bad) to 1 minute (less bad) without parallelizing the work. If parallelized, the time can be even lower.
 
 ### Other demonstrations
 
@@ -304,6 +396,16 @@ Other demonstrations may be found in the `demos/` folder of this repository. We 
 **Q: Can I mix different types of References in one Resolver?**
 
 **A:** EntiPy is not built to handle heterogeneous References in one Resolver. Please use only one schema within one Resolver as much as possible.
+
+**Q: My resolution is going really slowly. What can I do to improve it?**
+
+**A:** A cheap way to increase performance is to use MergeResolver if possible. This should work on all types of data. However, the most drastic performance gains by far come from blocking.
+
+In my initial tests on product name data:
+
+- SerialResolver with no blocking: 8 minutes
+- MergeResolver with no blocking and no parallelization: 1 minute
+- MergeResolver with blocking on the first character: 4 seconds (!)
 
 ## Roadmap
 

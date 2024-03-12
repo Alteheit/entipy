@@ -1,4 +1,4 @@
-from src.entipy import Field, Reference, SerialResolver
+from src.entipy import Field, Reference, SerialResolver, MergeResolver
 import csv
 import json
 from rapidfuzz import fuzz
@@ -11,7 +11,6 @@ class ObservedNameField(Field):
     false_match_probability = 0.15
     def compare(self, other):
         return fuzz.ratio(self.value, other.value) >= 70
-
 
 class ProductNameReference(Reference):
     observed_name = ObservedNameField

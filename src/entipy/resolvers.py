@@ -20,16 +20,28 @@ class SerialResolver:
     # Need at least an index and an inverted index
     block_index: dict # {blocking_key_name: {blocking_key_value: set[cluster_oid]}}
     inverted_block_index: dict # {cluster_oid: {blocking_key_name: blocking_key_value}} # Wait, I can just get this from cluster_map
-    def __init__(self, references):
+    def __init__(
+        self,
+        references,
+        *,
+        _clusters: list[Cluster] = None, # For MergeResolver only
+    ):
         # Internal object state init
         # Wait, are any of these even used other than references and cluster_map in .resolve()?
-        self.references = list(references)
+        if references is not None:
+            self.references = list(references)
+        self.clusters = []
         self.cluster_map = {}
         self.pair_set = SortedSet()
         self.candidate_set = SortedSet()
         self.cluster_pairs = {}
         self.block_index = {}
         self.inverted_block_index = {}
+        # For MergeResolver only
+        if (_clusters is not None) and (references is None):
+            self.cluster_map = {
+                c.oid: c for c in _clusters
+            }
     def _cluster_pass(self, cluster_map: dict) -> t.Tuple[dict, bool]:
         '''Merges the two most similar clusters, if any.
         If there are no similar clusters, does nothing.
@@ -175,6 +187,16 @@ class SerialResolver:
                 del cluster_map[cluster_oid_2]
         # Return the completed cluster_map
         return cluster_map
+    def _add_clusters(self, clusters: list[Cluster]) -> None:
+        """Adds clusters to the resolution queue.
+        Not meant as an interface. This is for MergeResolver."""
+        self.clusters.extend(clusters)
+    def _resolve_clusters(self, verbose: bool = False) -> None:
+        """Resolves clusters in the resolution queue.
+        Not meant as an interface. This is for MergeResolver."""
+        for c in self.clusters:
+            self.cluster_map = self._cluster_stream(c, self.cluster_map)
+        self.clusters = []
     def resolve(self, verbose: bool = False) -> None:
         """Drains every Reference in the references list.
         Includes every Reference in the cluster_map and resolves cluster_map."""
@@ -200,4 +222,85 @@ class SerialResolver:
         return [v for k, v in self.cluster_map.items()]
 
 class MergeResolver:
-    """Based on my hunch"""
+    """Based on a mergesort-inspired improvement to the IGP algorithm"""
+    references: list[Reference] # A list/queue of References to resolve
+    cluster_map: dict # The main database of Clusters; {oid: cluster}
+    merge_unit_size: int # Upper bound, inclusive, of merge portion sizes
+    def __init__(
+        self,
+        references,
+        *,
+        merge_unit_size: int = 500,
+    ):
+        """
+        merge_unit_size
+            The number of References that can be grouped into its own merge portion.
+            Example: if len(references) == 1250, a merge_unit_size of 500 will break
+            it into 3 portions: [:500], [500:1000], and [1000:].
+        """
+        self.references = list(references)
+        self.cluster_map = {}
+        self.merge_unit_size = merge_unit_size
+    def resolve(self, verbose: bool = False) -> None:
+        """Drains every Reference in the references list.
+        Includes every Reference in the cluster_map and resolves cluster_map."""
+        # Break references into portions
+        portions = [
+            self.references[n : n + self.merge_unit_size]
+            for n in range(0, len(self.references), self.merge_unit_size)
+        ]
+        # Resolve each portion
+        serial_resolvers = [
+            SerialResolver(portion)
+            for portion in portions
+        ]
+        for i, sr in enumerate(serial_resolvers): # Parallelize later?
+            if verbose:
+                print(f'Resolving portion:{i+1}/{len(serial_resolvers)}')
+            sr.resolve(verbose=verbose)
+        # Pyramiding merge
+        layer_a = []
+        layer_b = serial_resolvers # Will swap in the loop
+        while True:
+            layer_a = layer_b
+            layer_b = []
+            pairs = [layer_a[n : n + 2] for n in range(0, len(layer_a), 2)]
+            for i, srs in enumerate(pairs):
+                if verbose:
+                    print(f'Pyramiding resolution:Layer length {len(layer_a)}:{i+1}/{len(pairs)} pairs')
+                if len(srs) == 1:
+                    layer_b.append(srs[0])
+                    continue
+                sr_a, sr_b = srs[0], srs[1]
+                sr = SerialResolver(None, _clusters=sr_a.get_clusters())
+                sr._add_clusters(sr_b.get_clusters())
+                sr._resolve_clusters()
+                layer_b.append(sr)
+            if len(layer_b) == 1:
+                break
+        # Now merge the newcomers and the existing cluster_map
+        new_sr = layer_b[0]
+        main_sr = SerialResolver(None, _clusters=self.cluster_map.values())
+        main_sr._add_clusters(new_sr.get_clusters())
+        main_sr._resolve_clusters()
+        self.cluster_map = main_sr.cluster_map
+        # Add each portion to cluster_map and solve cluster_map
+        # for i, sr in enumerate(serial_resolvers):
+        #     if verbose:
+        #         print(f'Merging portion:{i+1}/{len(serial_resolvers)}')
+        #     main_sr = SerialResolver(None, _clusters=self.cluster_map.values())
+        #     main_sr._add_clusters(sr.get_clusters())
+        #     main_sr._resolve_clusters()
+        #     self.cluster_map = {c.oid: c for c in main_sr.get_clusters()}
+    def add(self, new_observation: Reference | list[Reference]) -> None:
+        """Adds reference(s) to the references list."""
+        pass
+    def get_cluster_data(self, include_reference_metadata=False):
+        """Getter for the JSON forms of clusters."""
+        return {
+            oid: cluster.as_json(include_reference_metadata=include_reference_metadata)
+            for oid, cluster in self.cluster_map.items()
+        }
+    def get_clusters(self):
+        """Getter for clusters. As in the clusters themselves, not their JSON forms."""
+        return [v for k, v in self.cluster_map.items()]
