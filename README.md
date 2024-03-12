@@ -412,7 +412,6 @@ In my initial tests on product name data:
 EntiPy is currently in pre-alpha. Do not expect the API to remain stable.
 
 The EntiPy project aims to implement the following features in future versions:
-- Blocking
 - Parallel resolution
 - Weak cluster dispersion
 - Using disks/databases
