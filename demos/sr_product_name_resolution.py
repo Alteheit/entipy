@@ -21,7 +21,7 @@ with open('samples/product-name-demo-dataset.csv') as f:
     reader = csv.reader(f)
     headers = next(reader)
     rows = [l for l in reader]
-    observed_names = [x[0] for x in rows]
+    observed_names = [x[1] for x in rows]
 
 references = [ProductNameReference(observed_name=x) for x in observed_names]
 

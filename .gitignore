@@ -3,6 +3,7 @@
 **/__pycache__
 env/
 dist/
+exclude/
 # Files
 scratch.ipynb
 scratch.py

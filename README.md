@@ -16,7 +16,7 @@ This library, EntiPy, implements **resolution** based on research done by [Tauer
 
 ## Prerequisites
 
-- Python 3.11 or higher.
+- Python 3.10 or higher.
     - We built and tested this version of EntiPy with Python 3.11.2.
 - `sortedcontainers`
     - Your Python environment must be able to install and use the `sortedcontainers` library, which can be found [here](https://github.com/grantjenks/python-sortedcontainers).
@@ -412,7 +412,10 @@ In my initial tests on product name data:
 EntiPy is currently in pre-alpha. Do not expect the API to remain stable.
 
 The EntiPy project aims to implement the following features in future versions:
-- Parallel resolution
+
+- True parallel resolution for MergeResolver
+- Indexing references on metadata, which will enable use cases like search
+- Cluster assertion, i.e., allowing manual assertion that references should be clustered
 - Weak cluster dispersion
 - Using disks/databases
 

@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "entipy"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
     { name="Joe Ilagan", email="joe@archmob.com" }
 ]
 description = "EntiPy is a Python toolkit that implements an incremental clustering approach to entity resolution."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "sortedcontainers>=2.4.0"
 ]
