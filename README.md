@@ -1,6 +1,7 @@
 # EntiPy
+## By Hyperjoin
 
-EntiPy is a Python toolkit that implements an incremental clustering approach to entity resolution.
+EntiPy is a Python toolkit that implements an incremental clustering approach to entity resolution. It is developed and maintained by Hyperjoin, and it is available under either the AGPLv3 license or a commercial license.
 
 ### Motivation
 
